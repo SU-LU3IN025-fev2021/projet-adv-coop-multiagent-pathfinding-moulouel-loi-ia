@@ -131,7 +131,7 @@ def astar(p,verbose=False,stepwise=False):
     nodeInit = Noeud(p.init,0,None)
     frontiere = [(nodeInit.g+p.h_value(nodeInit.etat,p.but),nodeInit)] 
 
-    reserve = {}        
+    reserve = {} # nodes already visited        
     bestNoeud = nodeInit
     
     while frontiere != [] and not p.estBut(bestNoeud.etat):              
@@ -186,4 +186,21 @@ def astar(p,verbose=False,stepwise=False):
 ###############################################################################
 # AUTRES ALGOS DE RESOLUTIONS...
 ###############################################################################
+
+def alpha_beta(p, position):
+    """ 
+        p: grid2D [init, but, grid, heurestique]
+        position: position courante
+        retourne la case optimal selon l'algorithme alpha-beta
+    """
+    #definir les voisins (les cases adjacentes)
+    
+    #pour chaque voisin calculer l'heurestique correspondante
+    #pour chaque voisin on applique alpha_beta pour trouver son successeur
+    
+
+    
+
+
+
 

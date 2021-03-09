@@ -123,7 +123,8 @@ def main():
     for w in wallStates:            # putting False for walls
         g[w]=False
     p = ProblemeGrid2D(initStates[0],objectifs[0],g,'manhattan')
-    path = probleme.astar(p) #[(1,3), (3,5), (3,6)]
+    p1= ProblemeGrid2D(initStates[1],objectifs[1],g,'manhattan')
+    path = probleme.astar(p1)
     print ("Chemin trouvé:", path)
         
     
@@ -132,16 +133,15 @@ def main():
     #-------------------------------
     
             
-    posPlayers = initStates
+    posPlayers = initStates #cases initiales pour les deux joueurs
 
     for i in range(iterations):
         
         # on fait bouger chaque joueur séquentiellement
         
-        # Joeur 0: suit son chemin trouve avec A* 
-        
-        row,col = path[i]
-        posPlayers[0]=(row,col)
+        # Joeur 0: suit son chemin trouve avec alpha beta
+        row,col = probleme.alpha_beta(p,posPlayers[0])
+        posPlayers[0]=(row,col) #changement de position du joueur 0
         players[0].set_rowcol(row,col)
         print ("pos 0:", row,col)
         if (row,col) == objectifs[0]:
@@ -150,22 +150,10 @@ def main():
             break
         
         # Joueur 1: fait du random walk
-        
-        row,col = posPlayers[1]
-
-        while True: # tant que pas legal on retire une position
-            x_inc,y_inc = random.choice([(0,1),(0,-1),(1,0),(-1,0)])
-            next_row = row+x_inc
-            next_col = col+y_inc
-            if legal_position(next_row,next_col):
-                break
-        players[1].set_rowcol(next_row,next_col)
-        print ("pos 1:", next_row,next_col)
-    
-        col=next_col
-        row=next_row
+        row,col = path[i]
         posPlayers[1]=(row,col)
-            
+        players[1].set_rowcol(row,col)
+        print ("pos 1:", row,col)
         if (row,col) == objectifs[1]:
             score[1]+=1
             print("le joueur 1 a atteint son but!")
