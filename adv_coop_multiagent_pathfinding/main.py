@@ -7,6 +7,7 @@ import random
 import numpy as np
 import sys
 from itertools import chain
+import time
 
 
 import pygame
@@ -49,34 +50,45 @@ def init(_boardname=None):
     
 def main():
 
-    #for arg in sys.argv:
-    iterations = 100 # default
-    if len(sys.argv) == 2:
-        iterations = int(sys.argv[1])
-    print ("Iterations: ")
-    print (iterations)
+    print("\n----------------------------------------------------------------------------------------------\n")
+    print("Projet IA et Jeux 2021 - Groupe 3 - LOI Alessia, MOULOUEL Myriem")
+    print("\n----------------------------------------------------------------------------------------------\n")
 
-    init()
-    
 
-    
+
     #-------------------------------
     # Initialisation
     #-------------------------------
-    
+
+    iterations = 100 # default
+    if len(sys.argv) == 2: # nombre iterations defini en parametre
+        iterations = int(sys.argv[1])
+    print ("Iterations: ",iterations)
+
+
+    # Choix du tableau de jeu
+    #init('demoMap')
+    #init('exAdvCoopMap')
+    init('map1_2equipes_2joueurs')
+    #init('map1_2equipes_5joueurs')
+    #init('map2_2equipes_3joueurs')
+    #init('map2_croisement')
+
+   #-------------------------------
+
+    print ("Description de l'environnement de jeu :")
+
     nbLignes = game.spriteBuilder.rowsize
+    print("Lignes :", nbLignes)
     nbCols = game.spriteBuilder.colsize
-       
-    print("lignes", nbLignes)
-    print("colonnes", nbCols)
-    
-    
+    print("Colonnes :", nbCols)
+  
+    #-------------------------------
+
     players = [o for o in game.layers['joueur']] #liste des joueurs [i for i range(0,4)]=>[0,1,2,3]
     nbPlayers = len(players)
-    score = [0]*nbPlayers #liste de score associe a chaque joueur
-    
-       
-           
+
+                
     # on localise tous les états initiaux (loc du joueur)
     # positions initiales des joueurs
     initStates = [o.get_rowcol() for o in game.layers['joueur']]
@@ -95,107 +107,226 @@ def main():
     def legal_position(row,col):
         # une position legale est dans la carte et pas sur un mur
         return ((row,col) not in wallStates) and row>=0 and row<nbLignes and col>=0 and col<nbCols
-        
+
+    print("\n----------------------------------------------------------------------------------------------\n")
+
+
+
     #-------------------------------
-    # Attributaion aleatoire des fioles 
+    # Positions initiales des joueurs
+    #-------------------------------
+
+    initStates_equipeB = []
+    initStates_equipeR = []
+
+    nbPlayersEquipe = int(nbPlayers / 2)
+
+    for i in range (nbPlayersEquipe):
+        initStates_equipeB.append(initStates[i])
+
+    for j in range (i+1, nbPlayersEquipe*2):   
+        initStates_equipeR.append(initStates[j])
+
+
+
+    #-------------------------------
+    # Attribution aleatoire des fioles 
     #-------------------------------
     
+    objectifs_equipeB = []
+    objectifs_equipeR = []
+
+    random.seed(42)
     objectifs = goalStates
     random.shuffle(objectifs)
-    print("Objectif joueur 0", objectifs[0])
-    print("Objectif joueur 1", objectifs[1])
 
-    
-    #-------------------------------
-    # Carte demo 
-    # 2 joueurs 
-    # Joueur 0: A*
-    # Joueur 1: random walker
-    #-------------------------------
-    
-    #-------------------------------
-    # calcul A* pour le joueur 1
-    #-------------------------------
-    
+    # Objectifs de l'equipe Bleue
+    print("Objectifs de l'équipe Bleue")
+    for i in range(nbPlayersEquipe):
+        objectifs_equipeB.append(objectifs[i])
+        print("\tJoueur jB" + str(i), objectifs_equipeB[i])
 
+    # Objectifs de l'equipe Rouge
+    print("\nObjectifs de l'équipe Rouge")
+    for i in range(nbPlayersEquipe):
+        objectifs_equipeR.append(objectifs[nbPlayersEquipe+i])
+        print("\tJoueur jR" + str(i), objectifs_equipeR[i])
+
+
+
+    #-------------------------------
+    # Creation d'une gille des positions des elements dans le plan de jeu
+    #-------------------------------
     
     g =np.ones((nbLignes,nbCols),dtype=bool)  # par defaut la matrice comprend des True  
     for w in wallStates:            # putting False for walls
         g[w]=False
-    p = ProblemeGrid2D(initStates[0],objectifs[0],g,'manhattan')
-    path = probleme.astar(p) #[(1,3), (3,5), (3,6)]
-    print ("Chemin trouvé:", path)
+
+
+
+    #-------------------------------
+    # Attribution joueurs au sein de chaque équipe
+    #-------------------------------
+
+    # Attribution joueurs équipe Bleue
+    equipeB = []
+    for i in range(nbPlayersEquipe):
+        p = ProblemeGrid2D(initStates_equipeB[i],objectifs_equipeB[i],g,'manhattan')
+        equipeB.append(p)
+
+    # Attributions joueurs équipe Rouge
+    equipeR = []
+    for i in range(nbPlayersEquipe):
+        p = ProblemeGrid2D(initStates_equipeR[i],objectifs_equipeR[i],g,'manhattan')
+        equipeR.append(p)
+
+
         
-    
+    #-------------------------------
+    # 2 équipes de <nbPlayersEquipe> agents chacune
+    # Strategies applicables : 
+    #       1) Local Repair A* : A* indépendants au sein d'une équipe, recalcul du chemin en cas de collision
+    #       2)
+    #       3)
+    # 
+    #-------------------------------
+
+    # strategies
+    LOCAL_REPAIR = 1
+    COLLAB_PATH_FINDING = 2
+    MINMAX = 3
+
+    # Choix de la strategie à employer pour chaque équipe
+    strategieB = MINMAX
+    strategieR = COLLAB_PATH_FINDING
+
+
     #-------------------------------
     # Boucle principale de déplacements 
     #-------------------------------
-    
-            
-    posPlayers = initStates
 
-    for i in range(iterations):
-        
-        # on fait bouger chaque joueur séquentiellement
-        
-        # Joeur 0: suit son chemin trouve avec A* 
-        
-        row,col = path[i]
-        posPlayers[0]=(row,col)
-        players[0].set_rowcol(row,col)
-        print ("pos 0:", row,col)
-        if (row,col) == objectifs[0]:
-            score[0]+=1
-            print("le joueur 0 a atteint son but!")
-            break
-        
-        # Joueur 1: fait du random walk
-        
-        row,col = posPlayers[1]
+    # Listes des positions courantes de chaque joueur, initialisées avec leurs positions initiales       
+    posPlayersB = initStates_equipeB 
+    posPlayersR = initStates_equipeR
 
-        while True: # tant que pas legal on retire une position
-            x_inc,y_inc = random.choice([(0,1),(0,-1),(1,0),(-1,0)])
-            next_row = row+x_inc
-            next_col = col+y_inc
-            if legal_position(next_row,next_col):
-                break
-        players[1].set_rowcol(next_row,next_col)
-        print ("pos 1:", next_row,next_col)
+    # Listes des scores associés à chaque joueur
+    scoreB = [0]*nbPlayersEquipe 
+    scoreR = [0]*nbPlayersEquipe
+
+
+    #listes des joueurs en attente
+    B_en_attente = []
     
-        col=next_col
-        row=next_row
-        posPlayers[1]=(row,col)
-            
-        if (row,col) == objectifs[1]:
-            score[1]+=1
-            print("le joueur 1 a atteint son but!")
-            break
-            
-            
+    R_en_attente = []
+
+
+
+    for tour_jeu in range(iterations):
+
+        print("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   Iteration de jeu n." + str(tour_jeu) + "   >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+
+        for i in range(len(equipeB)):
+            B_en_attente.append(i)
+
+        for i in range(len(equipeR)):
+            R_en_attente.append(i)
+
+        # on fait bouger chaque équipe séquentiellement :
         
-        # on passe a l'iteration suivante du jeu
+        # Equipe Bleue 
+        print("\nEQUIPE BLEUE")   
+
+        if strategieB == LOCAL_REPAIR:
+            posPlayersB = probleme.localRepair_astar(equipeB,posPlayersB,posPlayersR,scoreB)
+            print(posPlayersB)
+        if strategieB == COLLAB_PATH_FINDING:
+            posPlayersB = probleme.collaborativePathfinding(equipeB,posPlayersB,posPlayersR,objectifs_equipeB,initStates_equipeB,scoreB)
+            print(posPlayersB)
+        if strategieB == MINMAX:
+            posPlayersB = probleme.MinMax(g, equipeB, equipeR, posPlayersB, posPlayersR, 2)
+            print(posPlayersB)
+
+        # Deplacement sur les cases choisies   
+        print("\nDeplacements définis pour l'équipe BLEUE :")        
+        for i in range(nbPlayersEquipe):
+            row,col = posPlayersB[i]
+            players[i].set_rowcol(row,col)
+            print("Le joueur jB" + str(i), "se deplace en", (row,col))
+
+        # Comptabilisation des nouveaux scores obtenus pendant cette iteration (tour de jeu)
+        for i in range(nbPlayersEquipe):
+            if scoreB[i]==0 and posPlayersB[i]==objectifs_equipeB[i]:
+                scoreB[i] += 1
+                B_en_attente.remove(i)
+                print("Le joueur jB" + str(i) + " a atteint son but!")
+
+        # Les bleus ont gagné?
+        if sum(scoreB) == nbPlayersEquipe:
+            break
+
+
+        print("\n----------------------------------------------------------------------------------------------") 
+
+        # Equipe Rouge 
+        print("\nEQUIPE ROUGE")   
+
+        if strategieR == LOCAL_REPAIR:
+            posPlayersR = probleme.localRepair_astar(equipeR,posPlayersR,posPlayersB,scoreR)
+        if strategieR == COLLAB_PATH_FINDING:
+            posPlayersR = probleme.collaborativePathfinding(equipeR,posPlayersR,posPlayersB,objectifs_equipeR,initStates_equipeR,scoreR)
+        if strategieR == MINMAX:
+            posPlayersR = probleme.MinMax(g, equipeR, equipeB, posPlayersR, posPlayersB, 2)
+        
+        # Deplacement sur les cases choisies   
+        print("\nDeplacements définis pour l'équipe ROUGE :")           
+        for i in range(nbPlayersEquipe):
+            row,col = posPlayersR[i]
+            players[nbPlayersEquipe+i].set_rowcol(row,col)
+            print("Le joueur jR" + str(i), "se deplace en", (row,col))
+
+        # Comptabilisation des nouveaux scores obtenus pendant cette iteration (tour de jeu)
+        for i in range(nbPlayersEquipe):
+            if scoreR[i]==0 and posPlayersR[i]==objectifs_equipeR[i]:
+                scoreR[i] += 1
+                R_en_attente.remove(i)
+                print("Le joueur jR" + str(i) + " a atteint son but!")
+
+        # Les rouges ont gagné?
+        if sum(scoreR) == nbPlayersEquipe:
+            break
+
+
+
+
+        
+        # On passe a l'iteration suivante du jeu
         game.mainiteration()
 
-                
-        
-            
-    
-    print ("scores:", score)
+
+    #-------------------------------
+    # Critères de victoire
+    #-------------------------------                
+
+    print("\n----------------------------------------------------------------------------------------------\n")       
+    print ("Scores de l'équipe Bleue :", scoreB)
+    print ("Scores de l'équipe Rouge :", scoreR)
+
+    resultat = sum(scoreB) - sum(scoreR)
+    if resultat > 0:
+        print("\nL'équipe Bleu a gagné!")
+    elif resultat < 0:
+        print("\nL'équipe Rouge a gagné!")
+    else: # si scoreB.sum() = scoreR.sum()
+        print("\nLes équipes Bleue et Rouge ont eu le même score!") 
+
+
+    # Attente de 5 secondes avant de fermer la fenetre graphique
+    time.sleep(5) 
     pygame.quit()
     
     
     
-    
     #-------------------------------
-    
-        
-        
-    
-    
-        
-   
-
- 
     
    
 

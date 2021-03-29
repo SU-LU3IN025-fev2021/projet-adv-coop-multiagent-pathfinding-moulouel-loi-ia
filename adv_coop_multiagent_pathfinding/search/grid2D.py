@@ -40,6 +40,10 @@ class ProblemeGrid2D(Probleme):
             self.but=but
             self.grid=grid
             self.heuristique=heuristique
+            self.path=[]
+            self.reservationTable = {} # une par équipe, chez le joueur 0
+            self.path_history = [] # paramètre pour la gestion de la reservationTable
+            self.t_ecoule = 0  # paramètre pour la gestion de la reservationTable
         
     
     def cost(self,e1,e2):
