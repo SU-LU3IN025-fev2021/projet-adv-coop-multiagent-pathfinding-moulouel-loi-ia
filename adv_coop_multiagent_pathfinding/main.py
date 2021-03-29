@@ -8,7 +8,12 @@ import numpy as np
 import sys
 from itertools import chain
 import time
+import gc
 
+import numpy as np
+from matplotlib import pyplot as plt
+from IPython.core.pylabtools import figsize
+import pylab
 
 import pygame
 
@@ -49,7 +54,6 @@ def init(_boardname=None):
     player = game.player
     
 def main():
-
     print("\n----------------------------------------------------------------------------------------------\n")
     print("Projet IA et Jeux 2021 - Groupe 3 - LOI Alessia, MOULOUEL Myriem")
     print("\n----------------------------------------------------------------------------------------------\n")
@@ -69,12 +73,16 @@ def main():
     # Choix du tableau de jeu
     #init('demoMap')
     #init('exAdvCoopMap')
-    init('map1_2equipes_2joueurs')
+    #init('map1_2equipes_2joueurs')
     #init('map1_2equipes_5joueurs')
+    #init('map2_2equipes_1joueur')
+    init('map2_2equipes_2joueurs')
     #init('map2_2equipes_3joueurs')
+    #init('map2_2equipes_5joueurs')
+    #init('map2_2equipes_10joueurs')
     #init('map2_croisement')
 
-   #-------------------------------
+#-------------------------------
 
     print ("Description de l'environnement de jeu :")
 
@@ -82,7 +90,7 @@ def main():
     print("Lignes :", nbLignes)
     nbCols = game.spriteBuilder.colsize
     print("Colonnes :", nbCols)
-  
+
     #-------------------------------
 
     players = [o for o in game.layers['joueur']] #liste des joueurs [i for i range(0,4)]=>[0,1,2,3]
@@ -136,21 +144,23 @@ def main():
     objectifs_equipeB = []
     objectifs_equipeR = []
 
-    random.seed(42)
+    #random.seed(42)
     objectifs = goalStates
-    random.shuffle(objectifs)
-
-    # Objectifs de l'equipe Bleue
-    print("Objectifs de l'équipe Bleue")
-    for i in range(nbPlayersEquipe):
-        objectifs_equipeB.append(objectifs[i])
-        print("\tJoueur jB" + str(i), objectifs_equipeB[i])
+    #random.shuffle(objectifs)
 
     # Objectifs de l'equipe Rouge
-    print("\nObjectifs de l'équipe Rouge")
+    print("Objectifs de l'équipe Rouge")
     for i in range(nbPlayersEquipe):
-        objectifs_equipeR.append(objectifs[nbPlayersEquipe+i])
+        objectifs_equipeR.append(objectifs[i])
         print("\tJoueur jR" + str(i), objectifs_equipeR[i])
+    random.shuffle(objectifs_equipeR)
+
+    # Objectifs de l'equipe Bleue
+    print("\nObjectifs de l'équipe Bleue")
+    for i in range(nbPlayersEquipe):
+        objectifs_equipeB.append(objectifs[nbPlayersEquipe+i])
+        print("\tJoueur jB" + str(i), objectifs_equipeB[i])
+    random.shuffle(objectifs_equipeR)
 
 
 
@@ -197,9 +207,8 @@ def main():
     MINMAX = 3
 
     # Choix de la strategie à employer pour chaque équipe
-    strategieB = MINMAX
-    strategieR = COLLAB_PATH_FINDING
-
+    strategieB = LOCAL_REPAIR
+    strategieR = LOCAL_REPAIR
 
     #-------------------------------
     # Boucle principale de déplacements 
@@ -218,6 +227,10 @@ def main():
     B_en_attente = []
     
     R_en_attente = []
+
+
+    pathB = [[coup] for coup in posPlayersB]
+    pathR = [[coup] for coup in posPlayersR]
 
 
 
@@ -243,7 +256,7 @@ def main():
             posPlayersB = probleme.collaborativePathfinding(equipeB,posPlayersB,posPlayersR,objectifs_equipeB,initStates_equipeB,scoreB)
             print(posPlayersB)
         if strategieB == MINMAX:
-            posPlayersB = probleme.MinMax(g, equipeB, equipeR, posPlayersB, posPlayersR, 2)
+            posPlayersB = probleme.MinMax(g, equipeB, equipeR, posPlayersB, posPlayersR, 1)
             print(posPlayersB)
 
         # Deplacement sur les cases choisies   
@@ -295,6 +308,12 @@ def main():
         if sum(scoreR) == nbPlayersEquipe:
             break
 
+        for i in range(len(equipeB)):
+            if posPlayersB[i] not in pathB[i]:
+                pathB[i].append(posPlayersB[i])
+        for i in range(len(equipeR)):
+            if posPlayersR[i] not in pathR[i]:
+                pathR[i].append(posPlayersR[i])
 
 
 
@@ -317,21 +336,42 @@ def main():
     elif resultat < 0:
         print("\nL'équipe Rouge a gagné!")
     else: # si scoreB.sum() = scoreR.sum()
-        print("\nLes équipes Bleue et Rouge ont eu le même score!") 
+        taille_chemin1 = 0
+        taille_chemin2 = 0
+        for i in range(len(equipeB)):
+            taille_chemin1+=(len(pathB[i]))
+        for i in range(len(equipeR)):
+            taille_chemin2+=(len(pathR[i]))
+
+        if taille_chemin1 > taille_chemin2:
+            print("equipe B et R ont le meme score, mais R a fait moins de trajet => R gagne")
+        elif taille_chemin2 > taille_chemin1:
+            print("equipe B et R ont le meme score, mais B a fait moins de trajet => B gagne")
+        else:
+            print("\nLes équipes Bleue et Rouge ont eu le même score et ont parcouru la meme distance!") 
 
 
     # Attente de 5 secondes avant de fermer la fenetre graphique
     time.sleep(5) 
     pygame.quit()
     
-    
-    
+    del(pathB)
+    del(pathR)
+    #gc.collect()
     #-------------------------------
+    print("resultat: ",resultat)
+    return (sum(scoreB),sum(scoreR))
     
-   
-
 if __name__ == '__main__':
-    main()
+    filename = "nom_du_fichier" 
+    with open(filename, 'w') as f: 
+        f.write("iteration\tscoreB\tscoreR\n")
+        for i in range(2):
+            scoreB,scoreR = main()
+            
+            f.write(str(i)+"\t"+str(scoreB)+"\t"+str(scoreR)+"\n")
     
-
-
+    
+    
+    
+        

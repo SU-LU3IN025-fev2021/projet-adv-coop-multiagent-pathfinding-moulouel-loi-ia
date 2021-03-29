@@ -211,7 +211,8 @@ def localRepair_astar(equipe,posPlayersEquipe,posPlayersAdv,scoreEquipe,verbose=
         joueurBloqueParEnnemi = False
 
         joueur = joueursEnAttente.pop(0) # on traite le premier joueur de la liste 
-        print("\nC'est le tour de j" + str(joueur), "---> joueursEnAttente =", joueursEnAttente) # test
+        if verbose:
+            print("\nC'est le tour de j" + str(joueur), "---> joueursEnAttente =", joueursEnAttente) # test
 
         # Chemin pre-calculé à suivre associé au joueur
         pathJoueur = equipe[joueur].path
@@ -221,11 +222,11 @@ def localRepair_astar(equipe,posPlayersEquipe,posPlayersAdv,scoreEquipe,verbose=
         if len(pathJoueur) == 0 :
             pathJoueur = astar(equipe[joueur])                    
             pathJoueur.pop(0) # elimination de la case position initiale de la liste des pas à faire
-            print("Le joueur j" + str(joueur), "n'a pas encore de chemin: il génère son path =", pathJoueur) # test
+            #print("Le joueur j" + str(joueur), "n'a pas encore de chemin: il génère son path =", pathJoueur) # test
 
-        print("Le joueur j" + str(joueur), "a un path à suivre =", pathJoueur) # test
+        #print("Le joueur j" + str(joueur), "a un path à suivre =", pathJoueur) # test
         row,col = pathJoueur.pop(0) # case choisie
-        print("Le joueur j" + str(joueur), "voudrait se deplacer en", (row,col)) # test
+        #print("Le joueur j" + str(joueur), "voudrait se deplacer en", (row,col)) # test
 
         # Gestion des collisions 1 : la case (row,col) choisie est occupée par un joueur de notre équipe
         # 2 cas possibles:
@@ -244,16 +245,17 @@ def localRepair_astar(equipe,posPlayersEquipe,posPlayersAdv,scoreEquipe,verbose=
         #       - si il n'y a plus de cases accessibles ---> le joueur courant fait une pause = il ne se deplace pas dans ce tour de jeu
         if (row,col) in posPlayersAdv:
             facteurBr = equipe[joueur].successeurs(posPlayersEquipe[joueur]) # cette liste n'est jamais vide au départ = il y a toujours min 1 case accessible
-            print("\tfacteurBr ---> Cases voisines de la position courante", posPlayersEquipe[joueur], ":", facteurBr)
+            #print("\tfacteurBr ---> Cases voisines de la position courante", posPlayersEquipe[joueur], ":", facteurBr)
             while (row,col) in posPlayersAdv:
                 equipe[joueur].grid[row][col] = False
                 pathJoueur = astar(equipe[joueur])
                 equipe[joueur].grid[row][col] = True
                 pathJoueur.pop(0) # elimination de la case position initiale de la liste paths des pas à faire
                 row,col = pathJoueur.pop(0) # case choisie
-                print("Case choisie :", (row,col))
-                facteurBr.remove((row,col))
-                print("\tfacteurBr ---> Mise à jour des cases voisines :", facteurBr) #
+                #print("Case choisie :", (row,col))
+                if (row,col) in facteurBr:
+                    facteurBr.remove((row,col))
+                #print("\tfacteurBr ---> Mise à jour des cases voisines :", facteurBr) #
                 if len(facteurBr) == 0:
                     joueurBloqueParEnnemi = True
                     break 
@@ -266,8 +268,11 @@ def localRepair_astar(equipe,posPlayersEquipe,posPlayersAdv,scoreEquipe,verbose=
 
         # Mise à jour du chemin pour ce joueur
         equipe[joueur].path = pathJoueur 
-        #stop_stepwise = input("Press Enter to continue (s to stop)...")
-
+        
+    if stepwise:
+        stop_stepwise = input("Press Enter to continue (s to stop)...")
+        if stop_stepwise=="s":
+            stepwise=False
 
     return posPlayersEquipe
 
@@ -303,7 +308,8 @@ def collaborativePathfinding(equipe,posPlayersEquipe,posPlayersAdv,objectifsEqui
         joueurBloqueParEnnemi = False
 
         joueur = joueursEnAttente.pop(0) # on traite le premier joueur de la liste 
-        print("\nC'est le tour de j" + str(joueur), "---> joueursEnAttente =", joueursEnAttente) # test
+        if verbose:
+            print("\nC'est le tour de j" + str(joueur), "---> joueursEnAttente =", joueursEnAttente) # test
 
         posPlayersEquipe_saufMoi = list(posPlayersEquipe)
         del posPlayersEquipe_saufMoi[joueur]
@@ -316,50 +322,53 @@ def collaborativePathfinding(equipe,posPlayersEquipe,posPlayersAdv,objectifsEqui
         if len(pathJoueur) == 0 :
             pathJoueur, reservationTable = collaborativePath(equipe[joueur],reservationTable)                  
             pathJoueur.pop(0) # elimination de la case "position initiale" de la liste des pas à faire
-            print("Le joueur j" + str(joueur), "n'a pas encore de chemin: il génère son path =", pathJoueur) # test
+            #print("Le joueur j" + str(joueur), "n'a pas encore de chemin: il génère son path =", pathJoueur) # test
 
-        print("Le joueur j" + str(joueur), "a un path à suivre =", pathJoueur) # test
+        #print("Le joueur j" + str(joueur), "a un path à suivre =", pathJoueur) # test
         row,col = pathJoueur.pop(0) # case choisie
-        print("Le joueur j" + str(joueur), "voudrait se deplacer en", (row,col)) # test
+        #print("Le joueur j" + str(joueur), "voudrait se deplacer en", (row,col)) # test
 
         # test gestion des collisions 1 : normalement cette situation (case occupée par un joueur de notre équipe) ne doit pas se produire,
         # sauf si la case occupée est une case objectif et l'autre agent l'a rejoint avant notre passage.
         # Dans ce cas, on recalcule le chemin
         if (row,col) in posPlayersEquipe_saufMoi:
             if (row,col) in objectifsEquipe:
-                print("La case choisie", (row,col), "est occupée par un joueur de notre équipe...")
+                if verbose:
+                    print("La case choisie", (row,col), "est occupée par un joueur de notre équipe...")
                 equipe[joueur].grid[row][col] = False
                 freeExCollaborativePath(equipe[joueur],reservationTable) # on rend à nouveau accessible le chemin qu'on avait reservé
                 pathJoueur, reservationTable = collaborativePath(equipe[joueur],reservationTable) # recalcul chemin
                 pathJoueur.pop(0) # elimination de la case "position initiale" de la liste paths des pas à faire
                 equipe[joueur].grid[row][col] = True
-                print("\tGeneration d'un nouveau path =", pathJoueur)
+                #print("\tGeneration d'un nouveau path =", pathJoueur)
                 row,col = pathJoueur.pop(0) # case choisie
-                print("\tLe joueur j" + str(joueur), "voudrait se deplacer en", (row,col)) # test
+                #print("\tLe joueur j" + str(joueur), "voudrait se deplacer en", (row,col)) # test
 
         # Gestion des collisions 2 : la case (row,col) choisie est occupée par un joueur de l'équipe adversaire
         # 2 cas possibles:
         #       - tant qu'il y a d'autres cases accessibles (facteur de branchement) ---> le joueur cherche un nouveau path
         #       - si il n'y a plus de cases accessibles ---> le joueur courant fait une pause = il ne se deplace pas dans ce tour de jeu
         if (row,col) in posPlayersAdv:
-            print("La case choisie", (row,col), "est déjà occupée par un adversaire...")
+            if verbose:
+                print("La case choisie", (row,col), "est déjà occupée par un adversaire...")
             facteurBr_aVisiter = equipe[joueur].successeurs(posPlayersEquipe[joueur])
             facteurBr_dejaVisitees = []
-            print("\tCases voisines de la position courante", posPlayersEquipe[joueur], ":", facteurBr_aVisiter)
+            #print("\tCases voisines de la position courante", posPlayersEquipe[joueur], ":", facteurBr_aVisiter)
             while (row,col) in posPlayersAdv:
                 equipe[joueur].grid[row][col] = False
                 freeExCollaborativePath(equipe[joueur],reservationTable) # on rend à nouveau accessible le chemin qu'on avait reservé
                 pathJoueur, reservationTable = collaborativePath(equipe[joueur],reservationTable) # recalcul chemin
                 pathJoueur.pop(0) # elimination de la case "position initiale" de la liste paths des pas à faire
-                print("\tGeneration d'un nouveau path =", pathJoueur)
+                #print("\tGeneration d'un nouveau path =", pathJoueur)
                 row,col = pathJoueur.pop(0) # case choisie
                 facteurBr_aVisiter.remove((row,col))
                 facteurBr_dejaVisitees.append((row,col))
-                print("\tMise à jour de la liste des cases voisines :", facteurBr_aVisiter)
-                print("\tLe joueur j" + str(joueur), "voudrait se deplacer en", (row,col)) # test
+                #print("\tMise à jour de la liste des cases voisines :", facteurBr_aVisiter)
+                #print("\tLe joueur j" + str(joueur), "voudrait se deplacer en", (row,col)) # test
                 if len(facteurBr_aVisiter) == 0:
                     joueurBloqueParEnnemi = True
-                    print("\tJe suis bloqué par l'adversaire! Je ne pourrai pas bouger pas pour ce tour de jeu")
+                    if verbose:
+                        print("\tJe suis bloqué par l'adversaire! Je ne pourrai pas bouger pas pour ce tour de jeu")
                     break 
 
             for r,c in facteurBr_dejaVisitees:
@@ -377,6 +386,10 @@ def collaborativePathfinding(equipe,posPlayersEquipe,posPlayersAdv,objectifsEqui
 
     # Mise à jour de la reservationTable pour l'équipe    
     equipe[0].reservationTable = reservationTable
+    if stepwise:
+        stop_stepwise = input("Press Enter to continue (s to stop)...")
+        if stop_stepwise=="s":
+            stepwise=False
 
     return posPlayersEquipe
 
@@ -425,14 +438,15 @@ def collaborativePath(p,reservationTable,verbose=False,stepwise=False):
             t += cptAttente
             reservationTable[row,col,t] = True
             path.append((row,col))
-            print("Risque collision maitrisé en", (row,col))
+            #print("Risque collision maitrisé en", (row,col))
 
         t += 1
 
     # Sauvegarde du path crée, au cas où il faudra effacer les réservations
     # avec la fonction freeExCollaborativePath
     p.path_history = list(path)
-    print("reservationTable =", reservationTable)
+    if verbose:
+        print("reservationTable =", reservationTable)
 
     return path, reservationTable
 
@@ -454,11 +468,11 @@ def freeExCollaborativePath(p,reservationTable,verbose=False,stepwise=False):
         row,col = exPath[iCase]
         reservationTable[row,col,iCase] = False
 
-    print("reservationTable =", reservationTable)
+    #print("reservationTable =", reservationTable)
     p.path_history.clear()
 
 
-    
+
 
 ###############################################################################
 # minmax
@@ -467,14 +481,15 @@ def compteur():
     compteur.c = compteur.c + 1
     print("Appel numéro : ", compteur.c)
 
-def MinMax(g, equipe1, equipe2, position1, position2, depth):
+def MinMax(g, equipe1, equipe2, position1, position2, depth, verbose=False, stepwise=False):
     compteur.c = 0
     N = Noeud([position1,position2], 0, None)
     coup_valide_par_joueur = coups_valides(g, equipe1, equipe2, position1, position2)
     #print(coup_valide_par_joueur)
     l_coups_valides = ensemble_coup(coup_valide_par_joueur)
-    print(position1)
-    print(len(l_coups_valides))
+    if verbose:
+        print(position1)
+        print(len(l_coups_valides))
     #stop_stepwise = input("Press Enter to continue (s to stop)...")
     #print(l_coups_valides)
     evalu = -100000
@@ -484,9 +499,10 @@ def MinMax(g, equipe1, equipe2, position1, position2, depth):
         iter+=1
         noeud_impair = Noeud([coups,position2], 0, N)
         val = minValue(noeud_impair, [coups,position2], g, equipe1, equipe2, depth)
-        print("coups : ",coups)
-        print("val minValue :", val)
-        print("iteration = ",iter)
+        if verbose:
+            print("coups : ",coups)
+            print("val minValue :", val)
+            print("iteration = ",iter)
         noeud_impair.g = val
         if evalu < noeud_impair.g:
             evalu = noeud_impair.g
@@ -494,8 +510,12 @@ def MinMax(g, equipe1, equipe2, position1, position2, depth):
     for j in range(len(equipe1)):
         equipe1[j].init = coup_choisi[0][j]
     position1 = coup_choisi[0]
-    print(position1)
-    #stop_stepwise = input("Press Enter to continue (s to stop)...")
+    if verbose:
+        print(position1)
+    if stepwise:
+        stop_stepwise = input("Press Enter to continue (s to stop)...")
+        if stop_stepwise=="s":
+            stepwise=False
     gc.collect()
     return position1
 
@@ -605,7 +625,7 @@ def ensemble_coup(matrice):
     return liste
 
 def Evaluation(coups, equipe1, equipe2):
-    compteur()
+    #compteur()
     evalu = 0
     #chemin1 = 0
     #chemin2 = 0
