@@ -84,7 +84,7 @@ class ProblemeGrid2D(Probleme):
             """
         s=""
         (x,y)= etat
-        s+=str(x)+str(y)
+        s+=str(x)+'_'+str(y)
         return s
         
     def h_value(self,e1,e2):
@@ -98,5 +98,4 @@ class ProblemeGrid2D(Probleme):
 
 
             
-
 
