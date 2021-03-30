@@ -429,11 +429,11 @@ def collaborativePath(p,reservationTable,verbose=False,stepwise=False):
             col_tmp = col
             t_tmp = t
             while (row_tmp,col_tmp,t_tmp) in reservationTable.keys() and reservationTable[row_tmp,col_tmp,t_tmp] == True:
-                    cptAttente +=1
-                    path.append(path[-1]) # path[-1] : derniere case chargée dans path
-                    iCase_tmp += 1
-                    t_tmp +=1
-                    row_tmp, col_tmp = path_astar[iCase_tmp]
+                cptAttente +=1
+                path.append(path[-1]) # path[-1] : derniere case chargée dans path
+                iCase_tmp += 1
+                t_tmp +=1
+                row_tmp, col_tmp = path_astar[iCase_tmp]
 
             t += cptAttente
             reservationTable[row,col,t] = True
@@ -477,16 +477,26 @@ def freeExCollaborativePath(p,reservationTable,verbose=False,stepwise=False):
 ###############################################################################
 # minmax
 ###############################################################################
+
 def compteur():
     compteur.c = compteur.c + 1
     print("Appel numéro : ", compteur.c)
+
 
 def MinMax(g, equipe1, equipe2, position1, position2, depth, verbose=False, stepwise=False):
     compteur.c = 0
     N = Noeud([position1,position2], 0, None)
     coup_valide_par_joueur = coups_valides(g, equipe1, equipe2, position1, position2)
     #print(coup_valide_par_joueur)
-    l_coups_valides = ensemble_coup(coup_valide_par_joueur)
+    liste = ensemble_coup(coup_valide_par_joueur)
+
+    # eviter les collisions en ne gardants que l'ensemble des coups
+    #qui n'ont pas de cases en commun
+    l_coups_valides = []
+    for i in range(len(liste)):
+        if len(liste[i]) == len(equipe1):
+            l_coups_valides.append(liste[i])
+
     if verbose:
         print(position1)
         print(len(l_coups_valides))
@@ -519,6 +529,7 @@ def MinMax(g, equipe1, equipe2, position1, position2, depth, verbose=False, step
     gc.collect()
     return position1
 
+
 def maxValue(noeud, coup, g, equipe1, equipe2, depth):
     if depth == 1:
         return Evaluation(noeud.etat, equipe1, equipe2)
@@ -539,6 +550,7 @@ def maxValue(noeud, coup, g, equipe1, equipe2, depth):
                 evalu = noeud_impair.g
         gc.collect()
         return evalu
+
 
 def minValue(noeud, coup, g, equipe1, equipe2, depth):
     evalu = 100000
@@ -561,6 +573,7 @@ def minValue(noeud, coup, g, equipe1, equipe2, depth):
                 evalu = noeud_pair.g
     gc.collect()
     return evalu
+
 
 def coups_valides(g, equipe1, equipe2, position1, position2):
     #retourne une matrice des coups valide de chaque joueur
@@ -587,9 +600,9 @@ def coups_valides(g, equipe1, equipe2, position1, position2):
                     obstacles.append(position2[player])
             #print("obstacles ", obstacles)
             # successeurs valides pour chaque joueur
-            coup_valide = []
             i = position1[joueur][0]
             j = position1[joueur][1]
+            coup_valide = [(i,j)]
             if i>0 and (i-1,j) not in obstacles:
                 coup_valide.append((i-1,j))
             if i<imax-1 and (i+1,j) not in obstacles:
@@ -605,6 +618,7 @@ def coups_valides(g, equipe1, equipe2, position1, position2):
     gc.collect()
     return liste
 
+
 # epartir les coups au sein d'une meme equipe
 def ensemble_coup(matrice):
     liste = []
@@ -618,8 +632,9 @@ def ensemble_coup(matrice):
         liste_tmp = []
         for index in range(j):
             for indexL in range(len(liste)):
-                tmp = [matrice[0][index]] + copy.deepcopy(liste[indexL])
-                liste_tmp.append(tmp)
+                if matrice[0][index] not in liste[indexL]:
+                    tmp = [matrice[0][index]] + copy.deepcopy(liste[indexL])
+                    liste_tmp.append(tmp)
         liste = liste_tmp
     gc.collect()
     return liste
@@ -627,68 +642,22 @@ def ensemble_coup(matrice):
 def Evaluation(coups, equipe1, equipe2):
     #compteur()
     evalu = 0
-    #chemin1 = 0
-    #chemin2 = 0
+
     for i in range(len(equipe1)):
         tmp = equipe1[i].init
-        #print(tmp)
         equipe1[i].init = coups[0][i]
-        #print(equipe1[i].init)
         path = astar(equipe1[i])
-        #print(len(path))
         equipe1[i].init = tmp
         if len(path)==0:
             evalu+=1
         else:
             evalu+=(1/len(path))
-        #print("joueur : ",i)
-        #chemin1 = distManhattan(coups[0][i], equipe1[i].but)
-        #evalu-=chemin1
     
-    #for i in range(len(equipe2)):
-        #chemin2 = distManhattan(coups[1][i], coups[1][i])
-        #evalu+=chemin2
-    #print("evalu = ", evalu)
+    
     gc.collect()
     return evalu
+
 
 ###############################################################################
 # AlphaBeta
 ###############################################################################
-
-def alpha_beta(p, position):
-    """ 
-        p: grid2D [init, but, grid, heurestique]
-        position: position courante
-        retourne la case optimal selon l'algorithme alpha-beta
-    """
-    compteur.c = 0
-    N = Noeud([position1,position2], 0, None)
-    coup_valide_par_joueur = coups_valides(g, equipe1, equipe2, position1, position2)
-    #print(coup_valide_par_joueur)
-    l_coups_valides = ensemble_coup(coup_valide_par_joueur)
-    print(position1)
-    print(len(l_coups_valides))
-    #stop_stepwise = input("Press Enter to continue (s to stop)...")
-    #print(l_coups_valides)
-    evalu = -100000
-    coup_choisi = l_coups_valides[0]
-    iter = 0
-    for coups in l_coups_valides:
-        iter+=1
-        noeud_impair = Noeud([coups,position2], 0, N)
-        val = minValue(noeud_impair, [coups,position2], g, equipe1, equipe2, depth)
-        print("coups : ",coups)
-        print("val minValue :", val)
-        print("iteration = ",iter)
-        noeud_impair.g = val
-        if evalu < noeud_impair.g:
-            evalu = noeud_impair.g
-            coup_choisi = noeud_impair.etat
-    for j in range(len(equipe1)):
-        equipe1[j].init = coup_choisi[0][j]
-    position1 = coup_choisi[0]
-    print(position1)
-    #stop_stepwise = input("Press Enter to continue (s to stop)...")
-    gc.collect()
-    return position1
